@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DownloadRoute;
+use App\Enums\DownloadStatus;
 use App\Http\Requests\DownloadRequest;
+use App\Jobs\DownloadMediaJob;
+use App\Models\Download;
 use App\Services\DirectDownloadService;
 use App\Services\RouteDetectorService;
 use App\Services\UrlValidatorService;
 use Exception;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DownloadController extends Controller
@@ -77,5 +81,27 @@ class DownloadController extends Controller
                 'duration' => 'Siap diunduh via yt-dlp',
             ])
             ->with('success', "Tautan {$platform} valid dan siap diunduh!");
+    }
+
+    /**
+     * Menerima instruksi unduhan, membuat record di database, dan mengirim job ke antrean Queue.
+     */
+    public function download(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'url' => ['required', 'string', 'url'],
+            'route' => ['required', 'string', 'in:A,B'],
+        ]);
+
+        $download = Download::create([
+            'source_url' => $validated['url'],
+            'route' => DownloadRoute::from($validated['route']),
+            'status' => DownloadStatus::Pending,
+        ]);
+
+        DownloadMediaJob::dispatch($download);
+
+        return redirect('/history')
+            ->with('info', "Unduhan untuk '{$download->source_url}' telah dimasukkan ke dalam antrean (ID: #{$download->id}).");
     }
 }
