@@ -37,7 +37,7 @@
 
     <!-- Main Content -->
     <main class="flex-1 py-8 sm:py-12">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
             {{ $slot ?? '' }}
             @yield('content')
         </div>
